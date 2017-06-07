@@ -1,10 +1,10 @@
-## iOS 11 - Drag and Drop with Table and Collection Views (2546 words, 11 min)
+## iOS 11 Drag and Drop with Table and Collection Views (2546 words, 11 min)
 
 Hey what's up everybody, this is Ray. In today's screencast, I'm going to introduce you to a brand new feature in iOS 10: the ability to add drag and drop support into your apps.
 
-The iPad comes with great multitasking support - you can run two apps side by side with split view, or slide over modes. New this year, iOS has added the abiity to drag and drop items between apps - a feature that is sure to be a huge timesaver, and higly desired by users.
+The iPad comes with nice multitasking support - you can run two apps side by side with split view, or with the slide over mode. New this year, iOS has added the abiity to drag and drop items between apps - a feature that is sure to be a huge timesaver, and higly desired by users. The good news is - it's easy to add.
 
-In this screencast, I'll show you how to add Drag and Drop support into your iPad apps. I'll be showing you how to do this with a table view in this screencast, but it's pretty much the exact same process with collection views, just slightly renamed APIs. Let's dive in!
+In this screencast, I'll show you how to add Drag and Drop support into your iPad apps. I'll be showing you how to do this with a table view in this screencast, but if you watch this screencast you'll also know how to do this with collection views, since it's pretty much the exact same process, just slightly renamed APIs. 
 
 ## Getting Started
 
@@ -12,15 +12,15 @@ I have a simple iPad app here called Pet Finder that lists a batch of pets up fo
 
 ## Interlude
 
-The first step to adding Drag and Drop support is to write create a Drag Item object. This represents the data that you want to drag.
+The first step to adding Drag and Drop support is to write create a Drag Item object. This represents the item that you want to drag - which in our example of Pet Finder, would be our pet.
 
-A drag item is a small wrapper around an item provider. An item provider is the brains behind the operation - it knows how to convert your data into different formats of data.
+A drag item is a small wrapper around an item provider. An item provider is the brains behind the operation - it knows how to convert your item into different data formats.
 
-For now, we're going to start simple, and we'll create an Item Provider that can export our pets as a simple string, with the name of the pet.
+For now, we're going to start simple, and we'll create an Item Provider that can export our pet as a simple string, with the name of the pet.
 
 ### Code
 
-I'll open PetsDataStore.swift, and import MobileCoreServices. This is required to use a UTI type enumeration that I'll need in a second.
+I'll start by opening PetsDataStore.swift, and import MobileCoreServices. This is required to use a UTI type enumeration that I'll need in a second.
 
 ```
 import MobileCoreServices
@@ -29,20 +29,20 @@ import MobileCoreServices
 Next, I'll make a helper method to create the drag items for a given index path.
 
 1. First, I'll look up the pet for the given index path.
-2. Then, I'll convert the pet's name to a UTF8 string.
-3. Then, I'll create an empty NSItemProvider. Remember that a UIDragItem is just a simple wrapper around an NSItemProvider, which is the brains behind the data conversion task.
-4. I'll then call registerDataRepresentation, passing in the plain text UTI. This is basically saying "hey, this Item provider supports formatting this data as plain text, and here's a closure to call whenever you want to format it this way." Note that this closure isn't alled right away - it only happens if you drag this data somewhere, and whever you drop it wants to receive the data in this format.
-5. In this case, I actually already did the encoding since converting a single UTF8 string is super fast, so I just call the completion handler. But if the encoding was more involved this might take more time and code.
+2. Then, I'll create an empty NSItemProvider. Remember that a UIDragItem is just a simple wrapper around an NSItemProvider, which is the brains behind the data conversion task.
+3. I'll then call registerDataRepresentation, passing in the plain text UTI. This is basically saying "hey, this Item provider supports formatting this data as plain text, and here's a closure to call whenever you want to format it this way." Note that this closure isn't alled right away - it only happens if you drag this data somewhere, and whever you drop it wants to receive the data in this format.
+4. Once the drop target requests the data in plain text format, I'll convert the pet's name to a data buffer, in UTF8 format.
+5. Once I'm done, I'll call the completion handler. 
 6. Now that I've created the NSItemProvider, I create a UIDragItem wrapper.
 7. Finally, I return this as an array.
 
 ```
 func dragItems(for indexPath: IndexPath) -> [UIDragItem] {
   let pet = pets[indexPath.row] // 1
-
-  let data = pet.name.data(using: .utf8) // 2
-  let itemProvider = NSItemProvider() // 3
-  itemProvider.registerDataRepresentation(forTypeIdentifier: kUTTypePlainText as String, visibility: .all) { completion in // 4
+  
+  let itemProvider = NSItemProvider() // 2
+  itemProvider.registerDataRepresentation(forTypeIdentifier: kUTTypePlainText as String, visibility: .all) { completion in // 3
+      let data = pet.name.data(using: .utf8) // 4
       completion(data, nil) // 5
       return nil
   }
@@ -52,13 +52,9 @@ func dragItems(for indexPath: IndexPath) -> [UIDragItem] {
 }
 ```
 
-### Interlude
+Now that we have this method, it's easy to conform to the protocol required to add drag and drop support. 
 
-Now that we have written the code to create a Drag Item - and the corresponding item provider - for a given index path, it's easy to add dragging support. Let's take a look.
-
-## Code
-
-Inside PetsViewController, I'll create an extension to implement the required method to add drag support: UITableViewDragDelegate. It has just a single method to implement: tableView(:itemsForBeginning:session:at:). 
+I'll open PetsViewController, and add an extension to conform to the protocol: UITableViewDragDelegate. It has just a single method to implement: tableView(:itemsForBeginning:session:at:). 
 
 Inside this method, I find the appropriate data source using a helper method, then call the dragItems method we just wrote on that data source.
 
@@ -83,15 +79,15 @@ I'll slide up from the bottom of the screen, and drag Reminders over to the righ
 
 ### Interlude
 
-At this point, we've implemented the delegate to provide dragging support, which had 1 required method to get the list of drag items. 
+At this point, we've implemented the delegate to provide dragging support, which had 1 required method - to get the list of drag items. Remember, that just was a wrapper around item provier, which provided a closure to return the pet in string format.
 
 Let's now implement the delegate to provide dropping support, which has 3 required methods. 
 
-  1. iOS calls your first method to find out what types of data you are able to accept.
-  2. iOS calls our second method to find out what you intend to do with the given data - you can choose to move it or copy it. However, you can only copy it if it comes from another app.
-  3. Your third method is called when user commits the drop - at this point, you go back to your friend the item provider and request the data.
+  1. iOS calls your first method to find out what types of data you are able to accept. In our case, we'll accept strings.
+  2. iOS calls our second method to find out what you intend to do with the given data - you can choose to move, copy, or cancel it. In our case, we'll make different choice here based on the situation.
+  3. Your third method is called when user commits the drop - at this point, you go back to your friend the item provider and request the data. In our case, we'll ask for the data in string format so the conversion can occur, then we'll create a new pet with that name.
 
-Let's give it a shot.
+Let's see what this looks like.
 
 ### Demo
 
@@ -99,7 +95,7 @@ First, I'll open Pet.swift and add a helper method to retrieve the types of obje
 
 The passed in session object has a method called canLoadObjects, which you can use to see if the data being dropped can be converted into a target object type. We're going to only accept strings, so we'll pass in NSString.self here.
 
-Note that although we're only accepting strings at the moment, you can accept multiple types of data if you'd like. That's what I'll be showing you in the next screencast, on accepting multiple data representations.
+Note that although we're only accepting strings at the moment, you can accept multiple types of data if you'd like. That's what I'll be showing you in the next screencast, which covers accepting multiple data representations.
 
 ```
 public static func canHandle(_ session: UIDropSession) -> Bool {
@@ -145,7 +141,7 @@ There's one required method left: tableView(:performDropWith:). This is the work
 
 1. First, we'll get the data source for the table view.
 2. Then, we'll figure out where we should put the new item. If the coordinator gives us a destination, great we'll use that. But if it doesn't, we'll just create an index path to put it at the end of the table.
-3. Finally, we'll loop through all of the items that are dropped, and process each one. There are three cases we need to handle - the item originated in the table view, the item originated in the same app, but a different table view, and the item originated from a different app.
+3. Finally, we'll loop through all of the items that are dropped, and process each one. There are three cases we need to handle - the item originated from the same app and the same table view, the item originated in the same app, but a different table view, and the item originated from a different app.
 
 ```
   func tableView(_ tableView: UITableView, performDropWith coordinator: UITableViewDropCoordinator) {
@@ -179,7 +175,7 @@ Let's start with the final case, as the other two are optimizatoins. I'll put an
 
 2. Next, I get a reference to the item provider. Remember, that is that brainy object that can convert the data you're dragging into different formats.
 
-3. Then, I use a helper method on the item provider to load the data in the format I want to accept - NSString in this case. 
+3. Then, I use a helper method on the item provider to load the data in the format I want to accept - NSString in this case. NSString is one of the objects that implements the required protocols for conversion - along with NSAttributedString, NSURL, UIColor, UIImage, and MKMapItem. You can also make your own objects conform to this protocol, like you'll learn in the next screencast.
 
 4. I then convert the string from an NSString to a String.
 
@@ -215,19 +211,21 @@ There's one last thing - back in viewDidLoad, I'll set the drop delegate to self
 tableView.dropDelegate = self
 ```
 
-At this point, I can build and run, and check it out - I can drag and drop items from the reminders app into my app. I can also drag items between the table views, and the table view itself, but if I do this I lose data since currently I'm only saving the name of the pet out. Luckily, there is an optimization here that we'll do next!
+Oops - I have a typo here - I typed IndexPath but meant in.
+
+At this point, I can build and run, and check it out - I can drag and drop items from the reminders app into my app. I can also drag items between the table views, and the table view itself, but if I do this I lose data since currently I'm only saving the name of the pet out. Luckily, there is an optimization here that will fix that, and we'll do that next!
 
 ### Interlude
 
 If you think about it, if you drag and drop within your own app, what we're doing is really silly.
 
-We already have the data in memory, so there's no need to encode it out to a UTF8 string buffer and back. 
+We already have the pet object in memory, so there's no need to encode it out to a limited UTF8 string buffer and back. 
 
-Instead, if it's in the same table view, we should simply swap the rows. And if it's within the same app, the drag item provides a handy localObject property you can use to squirrel away the item for use later. Let's take a look.
+Instead, if it's in the same table view, we should simply swap the rows. And if it's within the same app, the drag item provides a handy localObject property you can use to "squirrel" away the pet for use later - what, squirrels make great pets! Anyway, let's take a look.
 
 ## Optimizations
 
-Let's fill in that first TODO. If the item has the sourceIndexPath property set, that means it's from the same app and the same table view. So I'll call moveItem on the data source to swap the positions, then on the main thread I'll update the table view appropriately.
+Let's fill in that first TODO. If the item has the sourceIndexPath property set, that means it's from the same app and the same table view. So I'll call moveItem on the data source to swap the positions, then on the main thread I'll perform a batch update to delete the row at the source, and insert a row at the destination.
 
 ```
       // Item originated from same app, and same table view
@@ -262,11 +260,11 @@ Now back in PetsViewController.swift I can implement the final TODO. If the loca
       }
 ```
 
-Now I'll build and run, and check it out -  I can move items within the table view - and even to the completely different adopted table view - in a much more efficient way.
+Now I'll build and run, and check it out -  I can move items within the table view, which works by swapping the rows, as we can see in the console with the "Same app - Same table view" case. I can also move items to the completely different adopted pets table view and it also works - and wee see this works by copying the pet we stored in the localObject property, as we can see in the console with the "Same app - Different table view" case.
 
 ### Interlude
 
-There's one last thing I want to show you. Although the String conversoin we're doing here happens very fast, sometimes it might take an item provider some time to convert its data to the format you request. So when dropping an item into a table view, it's better to inserts placeholder cell as you wait for the conversion to complete. This is a quick fix.
+There's one last thing I want to show you. Although the String conversion we're doing here happens very fast, sometimes it might take an item provider some time to convert its data to the format you request. So when dropping an item into a table view, it's better to insert a placeholder cell as you wait for the conversion to complete. This is a quick fix.
 
 ## Demo
 
@@ -294,7 +292,7 @@ I'll build and run, and if I drag a string in from another app I see a brief loa
 
 Allright, that's everything I'd like to cover in this screencast.
 
-At this point, you should understand how to implement the new iOS 11 drag and drop functionality into a table view. And believe it or not, you should know how to do this with collectoin views now too, because it's the exact same idea, jsut slightly different names.
+At this point, you should understand how to implement the new iOS 11 drag and drop functionality into a table view. And even though this screencast showed table views, you should know how to do this with collection views now too, because it's the exact same idea, jsut slightly different names.
 
 You might be curious to learn how to save data in different formats, or how to implement drag and drop with custom views - and that's the topic of my next screencast. I promise you - it won't be a drag.
 

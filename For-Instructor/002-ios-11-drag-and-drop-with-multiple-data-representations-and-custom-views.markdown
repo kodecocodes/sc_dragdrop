@@ -1,4 +1,4 @@
-## iOS 11 - Drag and Drop with Multiple Data Representations and Custom Views
+## iOS 11 Drag and Drop with Multiple Data Representations and Custom Views
 
 ## Implementing NSItemProviderWriting
 
